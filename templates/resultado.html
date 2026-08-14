@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Análise — {{ resultado.arquivo }}</title>
+<style>
+:root{--fundo:#07111f;--painel:#0e1d31;--texto:#edf5ff;--suave:#9db0c8;--destaque:#61d4ff;--ok:#76e3a4;--atencao:#ffd479;--borda:rgba(255,255,255,.1)}*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,system-ui,sans-serif;color:var(--texto);background:radial-gradient(circle at 10% 0,#12345a,transparent 32%),var(--fundo);user-select:none;-webkit-user-select:none}.selecionavel{user-select:text;-webkit-user-select:text}.grade{position:fixed;inset:0;pointer-events:none;opacity:.12;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:42px 42px}main{width:min(1180px,92%);margin:auto;padding:48px 0 80px}.topo{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}.marca{color:var(--destaque);font-size:.76rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.arquivo{margin-top:9px;color:var(--suave);font-size:.9rem}.voltar{color:var(--texto);text-decoration:none;padding:10px 14px;border:1px solid var(--borda);border-radius:12px;background:rgba(255,255,255,.04);transition:.2s}.voltar:hover{transform:translateY(-2px);border-color:rgba(97,212,255,.35)}h1{font-size:clamp(2.3rem,5vw,4.4rem);line-height:.95;letter-spacing:-.05em;margin:16px 0 36px}.grade-info{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{padding:18px;border:1px solid var(--borda);border-radius:18px;background:rgba(14,29,49,.82);backdrop-filter:blur(14px)}.rotulo{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#7890aa}.valor{display:block;margin-top:9px;font-size:1.05rem;font-weight:750}.secao{margin-top:18px}.secao h2{font-size:1.1rem;margin:0 0 12px}.exigencias{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.exigencia{border:1px solid var(--borda);border-radius:18px;background:rgba(255,255,255,.035);padding:18px}.exigencia strong{display:block}.status{display:inline-block;margin-top:9px;font-size:.75rem;padding:5px 8px;border-radius:999px;background:rgba(118,227,164,.1);color:var(--ok)}.status.atencao{background:rgba(255,212,121,.1);color:var(--atencao)}.trecho{margin:12px 0 0;color:var(--suave);font-size:.84rem;line-height:1.6;max-height:92px;overflow:auto}.fontes{display:flex;gap:8px;flex-wrap:wrap}.fonte{padding:8px 10px;border-radius:10px;background:rgba(97,212,255,.08);border:1px solid rgba(97,212,255,.14);color:#bceeff;font-size:.8rem}@media(max-width:850px){.grade-info{grid-template-columns:repeat(2,1fr)}.exigencias{grid-template-columns:1fr}}@media(max-width:520px){.grade-info{grid-template-columns:1fr}main{padding-top:30px}}
+</style>
+</head>
+<body><div class="grade"></div><main>
+<div class="topo"><div><div class="marca">análise preliminar do edital</div><div class="arquivo selecionavel">{{ resultado.arquivo }}</div></div><a class="voltar" href="{{ url_for('inicio') }}">← Novo edital</a></div>
+<h1>Mapa de <span style="color:var(--destaque)">participação.</span></h1>
+<section class="grade-info">
+{% for nome, valor in resultado.informacoes.items() %}<div class="card"><span class="rotulo">{{ nome.replace('_',' ') }}</span><span class="valor selecionavel">{{ valor }}</span></div>{% endfor %}
+</section>
+<section class="secao"><h2>Exigências e pontos de atenção</h2><div class="exigencias">
+{% for item in resultado.exigencias %}<article class="exigencia"><strong>{{ item.nome }}</strong><span class="status {% if item.status != 'Identificado' %}atencao{% endif %}">{{ item.status }}</span>{% if item.trecho %}<p class="trecho selecionavel">{{ item.trecho }}</p>{% endif %}</article>{% endfor %}
+</div></section>
+<section class="secao"><h2>Páginas com termos relevantes</h2><div class="fontes">{% for fonte in resultado.fontes %}<span class="fonte">Página {{ fonte.pagina }}</span>{% else %}<span class="status atencao">Nenhuma página marcada automaticamente</span>{% endfor %}</div></section>
+</main></body></html>
