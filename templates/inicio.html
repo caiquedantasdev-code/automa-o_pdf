@@ -5,29 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AnalisaEdital</title>
     <style>
-        :root { --fundo: #07111f; --painel: rgba(14, 29, 49, .78); --texto: #edf5ff; --suave: #9db0c8; --destaque: #61d4ff; }
-        * { box-sizing: border-box; }
-        body { margin: 0; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: var(--texto); background: radial-gradient(circle at 15% 20%, #12345a 0, transparent 32%), radial-gradient(circle at 85% 80%, #173a4b 0, transparent 30%), var(--fundo); overflow-x: hidden; }
-        .grade { position: fixed; inset: 0; pointer-events: none; opacity: .14; background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(to bottom, black, transparent); }
-        main { width: min(1120px, 92%); margin: auto; padding: 72px 0; position: relative; }
-        .marca { display: inline-flex; gap: 10px; align-items: center; color: var(--destaque); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; animation: aparecer .7s ease both; }
-        h1 { max-width: 780px; font-size: clamp(2.7rem, 7vw, 5.6rem); line-height: .94; margin: 22px 0; letter-spacing: -.055em; animation: subir .8s .08s ease both; }
-        h1 span { color: var(--destaque); }
-        .intro { max-width: 700px; color: var(--suave); font-size: 1.12rem; line-height: 1.7; animation: subir .8s .18s ease both; }
-        .cartao { margin-top: 42px; padding: 30px; border: 1px solid rgba(255,255,255,.1); border-radius: 28px; background: var(--painel); backdrop-filter: blur(18px); box-shadow: 0 30px 100px rgba(0,0,0,.3); animation: subir .8s .3s ease both; }
-        .linha { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
-        .status { color: #b8c7d8; font-size: .92rem; }
-        .ponto { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--destaque); box-shadow: 0 0 18px var(--destaque); animation: pulsar 1.8s infinite; }
-        .recursos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 24px; }
-        .recurso { padding: 20px; border-radius: 18px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); transition: transform .25s ease, border-color .25s ease; }
-        .recurso:hover { transform: translateY(-5px); border-color: rgba(97,212,255,.35); }
-        .recurso strong { display: block; margin-bottom: 7px; }
-        .recurso small { color: var(--suave); line-height: 1.5; }
-        @keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulsar { 50% { opacity: .35; transform: scale(.75); } }
-        @media (max-width: 760px) { .recursos { grid-template-columns: 1fr; } main { padding: 45px 0; } }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+        :root { --fundo:#07111f; --painel:rgba(14,29,49,.78); --texto:#edf5ff; --suave:#9db0c8; --destaque:#61d4ff; --borda:rgba(255,255,255,.1); }
+        *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;min-height:100vh;font-family:Inter,system-ui,sans-serif;color:var(--texto);background:radial-gradient(circle at 15% 20%,#12345a 0,transparent 32%),radial-gradient(circle at 85% 80%,#173a4b 0,transparent 30%),var(--fundo);overflow-x:hidden;user-select:none;-webkit-user-select:none} input,button{font:inherit} button,input[type=file]{user-select:auto;-webkit-user-select:auto}.grade{position:fixed;inset:0;pointer-events:none;opacity:.14;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent)}main{width:min(1120px,92%);margin:auto;padding:60px 0 80px;position:relative}.marca{display:inline-flex;gap:10px;align-items:center;color:var(--destaque);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.78rem;animation:aparecer .7s ease both}.ponto{display:inline-block;width:8px;height:8px;margin-right:2px;border-radius:50%;background:var(--destaque);box-shadow:0 0 18px var(--destaque);animation:pulsar 1.8s infinite}h1{max-width:850px;font-size:clamp(2.7rem,7vw,5.6rem);line-height:.94;margin:22px 0;letter-spacing:-.055em;animation:subir .8s .08s ease both}h1 span{color:var(--destaque)}.intro{max-width:740px;color:var(--suave);font-size:1.12rem;line-height:1.7;animation:subir .8s .18s ease both}.cartao{margin-top:38px;padding:30px;border:1px solid var(--borda);border-radius:28px;background:var(--painel);backdrop-filter:blur(18px);box-shadow:0 30px 100px rgba(0,0,0,.3);animation:subir .8s .3s ease both}.linha{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.status{color:#b8c7d8;font-size:.92rem}.recursos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}.recurso{padding:20px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease}.recurso:hover{transform:translateY(-5px);border-color:rgba(97,212,255,.35)}.recurso strong{display:block;margin-bottom:7px}.recurso small{color:var(--suave);line-height:1.5}.envio{margin-top:22px;padding:22px;border:1px dashed rgba(97,212,255,.3);border-radius:20px;background:rgba(97,212,255,.035)}.envio form{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.arquivo{flex:1;min-width:240px;padding:12px;border-radius:12px;border:1px solid var(--borda);background:rgba(0,0,0,.16);color:var(--suave)}.botao{border:0;border-radius:12px;padding:13px 19px;background:var(--destaque);color:#06101c;font-weight:800;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}.botao:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(97,212,255,.2)}.ajuda{display:block;margin-top:10px;color:#8399b2;font-size:.82rem}.erro{margin-bottom:14px;padding:12px 14px;border-radius:12px;background:rgba(255,100,100,.1);border:1px solid rgba(255,120,120,.25);color:#ffd0d0}@keyframes subir{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}@keyframes aparecer{from{opacity:0}to{opacity:1}}@keyframes pulsar{50%{opacity:.35;transform:scale(.75)}}@media(max-width:760px){.recursos{grid-template-columns:1fr}main{padding:45px 0}.cartao{padding:22px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
     </style>
 </head>
 <body>
@@ -35,15 +14,31 @@
 <main>
     <div class="marca"><span class="ponto"></span> inteligência para licitações</div>
     <h1>Do edital bruto ao <span>checklist</span> de participação.</h1>
-    <p class="intro">Uma base para transformar editais em informações práticas: prazos, documentos, exigências sanitárias, ANVISA, garantias, amostras, entrega e pontos de atenção — sempre com rastreabilidade para a fonte.</p>
+    <p class="intro">Transforme editais em informações práticas: prazos, documentos, exigências sanitárias, ANVISA, garantias, amostras, entrega e pontos de atenção — com rastreabilidade para a fonte.</p>
     <section class="cartao">
-        <div class="linha"><strong>AnalisaEdital</strong><span class="status">motor de análise em construção</span></div>
+        <div class="linha"><strong>AnalisaEdital</strong><span class="status">motor de análise em funcionamento</span></div>
+        {% if erro %}<div class="erro">{{ erro }}</div>{% endif %}
+        <div class="envio">
+            <form action="{{ url_for('analisar') }}" method="post" enctype="multipart/form-data" id="formulario-edital">
+                <input class="arquivo" type="file" name="edital" accept="application/pdf,.pdf" required>
+                <button class="botao" type="submit" id="botao-analisar">Analisar edital</button>
+            </form>
+            <small class="ajuda">PDF de até 25 MB. A primeira análise é objetiva e não inventa exigências que não aparecem no documento.</small>
+        </div>
         <div class="recursos">
             <div class="recurso"><strong>Leitura inteligente</strong><small>Extração estruturada de informações relevantes do PDF.</small></div>
-            <div class="recurso"><strong>Rastreabilidade</strong><small>Cada conclusão deverá apontar para a origem no edital.</small></div>
-            <div class="recurso"><strong>Checklist operacional</strong><small>O que preparar antes, durante e depois do pregão.</small></div>
+            <div class="recurso"><strong>Rastreabilidade</strong><small>O sistema preserva páginas que contêm termos relevantes para conferência.</small></div>
+            <div class="recurso"><strong>Checklist operacional</strong><small>Identificação de exigências que merecem atenção antes do pregão.</small></div>
         </div>
     </section>
 </main>
+<script>
+const formulario = document.getElementById('formulario-edital');
+const botao = document.getElementById('botao-analisar');
+formulario.addEventListener('submit', () => {
+    botao.disabled = true;
+    botao.textContent = 'Lendo o edital...';
+});
+</script>
 </body>
 </html>
