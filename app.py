@@ -1,6 +1,7 @@
 import hmac
 import os
 import secrets
+import time
 import uuid
 from pathlib import Path
 
@@ -11,6 +12,10 @@ from werkzeug.utils import secure_filename
 
 from servicos.analisador_edital import AnalisadorEdital
 from servicos.leitor_pdf import LeitorPDF
+
+
+if os.environ.get("AMBIENTE", "desenvolvimento").lower() == "producao" and not os.environ.get("SECRET_KEY"):
+    raise RuntimeError("Defina SECRET_KEY antes de executar a aplicação em produção.")
 
 
 app = Flask(__name__)
@@ -26,9 +31,24 @@ PASTA_UPLOADS = Path("uploads")
 PASTA_UPLOADS.mkdir(exist_ok=True)
 TAMANHO_MAXIMO = 25 * 1024 * 1024
 PAGINAS_MAXIMAS = 300
+TEMPO_LIMPEZA_SEGUNDOS = 60 * 60
 
 leitor = LeitorPDF(limite_paginas=PAGINAS_MAXIMAS)
 analisador = AnalisadorEdital()
+
+
+def _limpar_uploads_antigos() -> None:
+    """Remove temporários antigos deixados por interrupções inesperadas."""
+    agora = time.time()
+    for arquivo in PASTA_UPLOADS.glob("*.pdf"):
+        try:
+            if agora - arquivo.stat().st_mtime > TEMPO_LIMPEZA_SEGUNDOS:
+                arquivo.unlink(missing_ok=True)
+        except OSError:
+            continue
+
+
+_limpar_uploads_antigos()
 
 
 def _token_csrf() -> str:
@@ -46,18 +66,18 @@ def _csrf_valido(token_recebido: str | None) -> bool:
 
 def _arquivo_pdf_valido(caminho: Path) -> bool:
     """Valida assinatura, estrutura e estado do PDF antes da análise."""
-    with caminho.open("rb") as arquivo:
-        assinatura = arquivo.read(5)
-    if assinatura != b"%PDF-":
-        return False
-
     try:
+        with caminho.open("rb") as arquivo:
+            assinatura = arquivo.read(5)
+        if assinatura != b"%PDF-":
+            return False
+
         with fitz.open(caminho) as documento:
             if documento.is_encrypted or documento.page_count < 1:
                 return False
             if documento.page_count > PAGINAS_MAXIMAS:
                 return False
-    except (fitz.FileDataError, RuntimeError, ValueError):
+    except (OSError, fitz.FileDataError, RuntimeError, ValueError):
         return False
     return True
 
@@ -123,7 +143,7 @@ def analisar():
         paginas = leitor.extrair(caminho)
         resultado = analisador.analisar(paginas, nome_original)
         return render_template("resultado.html", resultado=resultado)
-    except (OSError, fitz.FileDataError, RuntimeError):
+    except (OSError, fitz.FileDataError, RuntimeError, ValueError):
         return render_template(
             "inicio.html",
             erro="Não foi possível processar este PDF. Tente outro arquivo.",
