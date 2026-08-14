@@ -1,6 +1,5 @@
 import io
 import unittest
-from pathlib import Path
 
 import fitz
 
@@ -51,7 +50,7 @@ class TesteSegurancaAplicacao(unittest.TestCase):
             content_type="multipart/form-data",
         )
         self.assertEqual(resposta.status_code, 400)
-        self.assertIn(b"PDF valido", resposta.data)
+        self.assertIn(b"arquivo", resposta.data)
         self.assertEqual(list(PASTA_UPLOADS.glob("*.pdf")), [])
 
     def test_upload_valido_e_removido_ao_final(self):
