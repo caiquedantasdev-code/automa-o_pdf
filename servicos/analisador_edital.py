@@ -4,17 +4,27 @@ from typing import Iterable
 
 
 class AnalisadorEdital:
-    """Extrai sinais objetivos do edital sem inventar exigências ausentes."""
+    """Extrai sinais objetivos do edital sem escolher datas por posição no PDF."""
+
+    _PADRAO_DATA = re.compile(
+        r"\b(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})\b"
+        r"|\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b"
+    )
+    _PADRAO_HORA = re.compile(
+        r"\b(\d{1,2})\s*(?::|h)\s*(\d{2})\s*(?:min(?:utos)?|hs?|horas?)?\b",
+        re.IGNORECASE,
+    )
 
     def analisar(self, paginas: list[dict], nome_arquivo: str) -> dict:
         texto_completo = "\n".join(pagina["texto"] for pagina in paginas)
         normalizado = self._normalizar(texto_completo)
+        data, horario = self._encontrar_sessao(normalizado)
         return {
             "arquivo": nome_arquivo,
             "paginas": len(paginas),
             "informacoes": {
-                "data": self._encontrar_data(normalizado),
-                "horario": self._encontrar_horario(normalizado),
+                "data": data,
+                "horario": horario,
                 "plataforma": self._encontrar_plataforma(normalizado),
                 "modalidade": self._encontrar_modalidade(normalizado),
                 "criterio": self._encontrar_criterio(normalizado),
@@ -43,74 +53,123 @@ class AnalisadorEdital:
         return None
 
     @staticmethod
-    def _formatar_data_extensa(dia: str, mes: str, ano: str) -> str:
-        meses = {"janeiro":"01", "fevereiro":"02", "marco":"03", "abril":"04", "maio":"05", "junho":"06", "julho":"07", "agosto":"08", "setembro":"09", "outubro":"10", "novembro":"11", "dezembro":"12"}
-        return f"{int(dia):02d}/{meses[mes]}/{ano}"
+    def _formatar_data(dia: str, mes: str, ano: str) -> str | None:
+        try:
+            if mes.isdigit():
+                mes_numero = int(mes)
+            else:
+                meses = {
+                    "janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4,
+                    "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
+                    "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
+                }
+                mes_numero = meses[mes]
+            if not 1 <= int(dia) <= 31 or not 1900 <= int(ano) <= 2200 or not 1 <= mes_numero <= 12:
+                return None
+            return f"{int(dia):02d}/{mes_numero:02d}/{int(ano):04d}"
+        except (ValueError, KeyError):
+            return None
 
     @classmethod
     def _datas_encontradas(cls, texto: str) -> list[tuple[int, str]]:
         resultados = []
-        padroes = [
-            r"\b(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})\b",
-            r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b",
-            r"\b(\d{1,2})[.-](\d{1,2})[.-](\d{4})\b",
-        ]
-        for indice, padrao in enumerate(padroes):
-            for encontrado in re.finditer(padrao, texto):
-                if indice == 0:
-                    data = cls._formatar_data_extensa(*encontrado.groups())
-                else:
-                    dia, mes, ano = encontrado.groups()
-                    data = f"{int(dia):02d}/{int(mes):02d}/{ano}"
+        for encontrado in cls._PADRAO_DATA.finditer(texto):
+            grupos = encontrado.groups()
+            if grupos[0] is not None:
+                data = cls._formatar_data(grupos[0], grupos[1], grupos[2])
+            else:
+                data = cls._formatar_data(grupos[3], grupos[4], grupos[5])
+            if data:
                 resultados.append((encontrado.start(), data))
         return resultados
 
     @classmethod
-    def _encontrar_data(cls, texto: str) -> str:
-        candidatos = cls._datas_encontradas(texto)
-        if not candidatos:
-            return "Não identificado"
-
-        marcadores = [
-            "inicio da sessao", "sessao publica", "abertura da sessao",
-            "abertura das propostas", "data e horario para recebimento das propostas",
-        ]
-        melhor = None
-        for posicao, data in candidatos:
-            contexto = texto[max(0, posicao - 350):posicao + 180]
-            pontuacao = sum(10 for marcador in marcadores if marcador in contexto)
-            if "assinatura" in contexto or "publicado" in contexto:
-                pontuacao -= 4
-            candidato = (pontuacao, -posicao, data)
-            if melhor is None or candidato > melhor:
-                melhor = candidato
-        return melhor[2]
+    def _extrair_primeira_data(cls, trecho: str) -> str | None:
+        datas = cls._datas_encontradas(trecho)
+        return datas[0][1] if datas else None
 
     @classmethod
-    def _encontrar_horario(cls, texto: str) -> str:
-        # Aceita 08:30, 08h30, 08h30min, 08h30minutos e 08 horas.
-        padrao = re.compile(r"\b(\d{1,2})\s*(?::|h)(\d{2})\s*(?:min(?:utos)?|hs?|horas?)?\b")
-        candidatos = [(m.start(), f"{int(m.group(1)):02d}:{m.group(2)}") for m in padrao.finditer(texto)]
-        if not candidatos:
-            return "Não identificado"
+    def _extrair_primeiro_horario(cls, trecho: str) -> str | None:
+        encontrado = cls._PADRAO_HORA.search(trecho)
+        if not encontrado:
+            return None
+        return f"{int(encontrado.group(1)):02d}:{encontrado.group(2)}"
 
-        marcadores = ["inicio da sessao", "sessao publica", "abertura da sessao"]
-        melhor = None
-        for posicao, horario in candidatos:
-            contexto = texto[max(0, posicao - 300):posicao + 140]
-            pontuacao = sum(10 for marcador in marcadores if marcador in contexto)
-            if "abertura das propostas" in contexto:
-                pontuacao += 4
-            if "recebimento das propostas" in contexto:
-                pontuacao -= 2
-            candidato = (pontuacao, -posicao, horario)
-            if melhor is None or candidato > melhor:
-                melhor = candidato
-        return melhor[2]
+    @classmethod
+    def _encontrar_sessao(cls, texto: str) -> tuple[str, str]:
+        """Procura a data/horário do evento da sessão antes de considerar datas genéricas."""
+        # 1. Rótulos explícitos são a fonte mais confiável.
+        data = cls._extrair_rotulo(texto, r"data\s+da\s+sessao")
+        horario = cls._extrair_horario_rotulo(texto, r"horario\s+da\s+sessao")
+        if data or horario:
+            return data or "Não identificado", horario or cls._extrair_horario_proximo(texto, data)
+
+        # 2. Eventos de abertura/disputa/início da sessão.
+        marcadores = [
+            r"inicio\s+da\s+sessao",
+            r"sessao\s+publica",
+            r"abertura\s+das\s+propostas",
+            r"inicio\s+da\s+disputa",
+            r"sessao\s+de\s+disputa",
+        ]
+        for marcador in marcadores:
+            for encontrado in re.finditer(marcador, texto):
+                bloco = texto[encontrado.end():encontrado.end() + 350]
+                data_bloco = cls._extrair_primeira_data(bloco)
+                horario_bloco = cls._extrair_primeiro_horario(bloco)
+                if data_bloco or horario_bloco:
+                    return data_bloco or "Não identificado", horario_bloco or "Não identificado"
+
+        # 3. Frases comuns como “sessão em 25/08/2026 às 09:30”.
+        padrao_frase = re.compile(
+            r"(?:sessao|abertura|disputa)[^.;]{0,120}?"
+            r"(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{1,2}\s+de\s+[a-z]+\s+(?:de\s+)?\d{4})"
+            r"[^.;]{0,80}?"
+            r"(?:as|a|horario)?\s*(\d{1,2}\s*(?::|h)\s*\d{2})",
+        )
+        encontrado = padrao_frase.search(texto)
+        if encontrado:
+            data = cls._extrair_primeira_data(encontrado.group(0))
+            horario = cls._extrair_primeiro_horario(encontrado.group(0))
+            if data or horario:
+                return data or "Não identificado", horario or "Não identificado"
+
+        return "Não identificado", "Não identificado"
+
+    @classmethod
+    def _extrair_rotulo(cls, texto: str, rotulo: str) -> str | None:
+        padrao = re.compile(rf"{rotulo}\s*[:\-]?\s*(.{{0,90}})", re.IGNORECASE)
+        for encontrado in padrao.finditer(texto):
+            data = cls._extrair_primeira_data(encontrado.group(1))
+            if data:
+                return data
+        return None
+
+    @classmethod
+    def _extrair_horario_rotulo(cls, texto: str, rotulo: str) -> str | None:
+        padrao = re.compile(rf"{rotulo}\s*[:\-]?\s*(.{{0,90}})", re.IGNORECASE)
+        for encontrado in padrao.finditer(texto):
+            horario = cls._extrair_primeiro_horario(encontrado.group(1))
+            if horario:
+                return horario
+        return None
+
+    @classmethod
+    def _extrair_horario_proximo(cls, texto: str, data: str | None) -> str | None:
+        if not data:
+            return None
+        posicao = texto.find(data.lower())
+        if posicao < 0:
+            return None
+        return cls._extrair_primeiro_horario(texto[posicao:posicao + 180])
 
     @staticmethod
     def _encontrar_plataforma(texto: str) -> str:
-        plataformas = {"bll": "BLL", "bnc": "BNC Compras", "compras.gov": "Compras.gov.br", "comprasnet": "ComprasNet", "licitanet": "LicitaNet", "portal de compras publicas": "Portal de Compras Públicas"}
+        plataformas = {
+            "bll": "BLL", "bnc": "BNC Compras", "compras.gov": "Compras.gov.br",
+            "comprasnet": "ComprasNet", "licitanet": "LicitaNet",
+            "portal de compras publicas": "Portal de Compras Públicas",
+        }
         for termo, nome in plataformas.items():
             if termo in texto:
                 return nome
@@ -118,7 +177,12 @@ class AnalisadorEdital:
 
     @staticmethod
     def _encontrar_modalidade(texto: str) -> str:
-        for termo, nome in [("pregao eletronico", "Pregão Eletrônico"), ("pregao presencial", "Pregão Presencial"), ("concorrencia eletronica", "Concorrência Eletrônica"), ("concorrencia presencial", "Concorrência Presencial")]:
+        for termo, nome in [
+            ("pregao eletronico", "Pregão Eletrônico"),
+            ("pregao presencial", "Pregão Presencial"),
+            ("concorrencia eletronica", "Concorrência Eletrônica"),
+            ("concorrencia presencial", "Concorrência Presencial"),
+        ]:
             if termo in texto:
                 return nome
         return "Não identificada"
@@ -126,10 +190,14 @@ class AnalisadorEdital:
     @staticmethod
     def _encontrar_criterio(texto: str) -> str:
         encontrados = []
-        if "menor preco por lote" in texto: encontrados.append("Menor preço por lote")
-        if "menor preco global" in texto: encontrados.append("Menor preço global")
-        if "menor preco por item" in texto: encontrados.append("Menor preço por item")
-        if "menor preco" in texto and not encontrados: encontrados.append("Menor preço")
+        if "menor preco por lote" in texto:
+            encontrados.append("Menor preço por lote")
+        if "menor preco global" in texto:
+            encontrados.append("Menor preço global")
+        if "menor preco por item" in texto:
+            encontrados.append("Menor preço por item")
+        if "menor preco" in texto and not encontrados:
+            encontrados.append("Menor preço")
         return " / ".join(encontrados) if encontrados else "Não identificado"
 
     @staticmethod
@@ -160,7 +228,7 @@ class AnalisadorEdital:
         return resultado
 
     def _fontes_relevantes(self, paginas: list[dict]) -> list[dict]:
-        termos = ["termo de referencia", "habilitacao", "proposta", "amostra", "garantia", "anvisa", "inicio da sessao", "abertura das propostas"]
+        termos = ["termo de referencia", "habilitacao", "proposta", "amostra", "garantia", "anvisa", "inicio da sessao", "abertura das propostas", "data da sessao"]
         fontes = []
         for pagina in paginas:
             texto_normalizado = self._normalizar(pagina["texto"])
