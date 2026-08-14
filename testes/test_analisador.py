@@ -30,6 +30,24 @@ class TesteAnalisadorEdital(unittest.TestCase):
         self.assertEqual(resultado["informacoes"]["data"], "17/08/2026")
         self.assertEqual(resultado["informacoes"]["horario"], "08:30")
 
+    def test_prioriza_data_e_horario_da_sessao_de_anguera(self):
+        paginas = [{
+            "pagina": 1,
+            "texto": "Lei Complementar nº 123, de 14 de dezembro de 2006. X - Local e data para o Recebimento das Propostas, documentos relativos à habilitação e início da abertura dos envelopes: Data da Sessão: 14 de Agosto de 2026. Horário da Sessão: 09h00min. Local: BLL COMPRAS. Recebimento das Propostas: até as 8h00min do dia 13/08/2026."
+        }]
+        resultado = self.analisador.analisar(paginas, "EDITAL - MEDICAMENTOS 017-26 PA118.pdf")
+        self.assertEqual(resultado["informacoes"]["data"], "14/08/2026")
+        self.assertEqual(resultado["informacoes"]["horario"], "09:00")
+
+    def test_data_da_sessao_nao_confunde_com_data_de_publicacao(self):
+        paginas = [{
+            "pagina": 1,
+            "texto": "Anguera/BA, 05 de agosto de 2026. Publicação em 06/08/2026. Data da Sessão: 14 de Agosto de 2026. Horário da Sessão: 09h00min."
+        }]
+        resultado = self.analisador.analisar(paginas, "edital.pdf")
+        self.assertEqual(resultado["informacoes"]["data"], "14/08/2026")
+        self.assertEqual(resultado["informacoes"]["horario"], "09:00")
+
     def test_nao_inventa_exigencia(self):
         resultado = self.analisador.analisar([{"pagina": 1, "texto": "Pregão Eletrônico sem exigências sanitárias."}], "edital.pdf")
         exigencias = {item["nome"]: item["status"] for item in resultado["exigencias"]}
