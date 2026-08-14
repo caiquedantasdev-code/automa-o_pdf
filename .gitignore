@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Ambiente local
+.vscode/
+.idea/
+*.sqlite3
+*.db
+
+# Arquivos temporários de análise
+uploads/
+outputs/
+*.tmp
+*.log
